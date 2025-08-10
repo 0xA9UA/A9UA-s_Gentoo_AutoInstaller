@@ -57,7 +57,7 @@ need(){ command -v "$1" >/dev/null 2>&1 || err "Missing: $1"; }
 title(){ printf "\n==== %s ====\n" "$*"; }
 yn(){ local p="$1" d="${2:-Y}" a; read -rp "$p [Y/n] " a || true; a="${a:-$d}"; [[ "$a" =~ ^[Yy]$ ]]; }
 ask(){ local p="$1" v; read -rp "$p: " v; echo "$v"; }
-askd(){ local p="$1" d="$2" v; read -rp "$p [$d]: " v || true; echo "${v:-$d}"; }
+askd(){ local p="$1" d="$2" v; read -rp "$p [$d]: " v || true; printf '%s\n' "${v:-$d}"; }
 ask_secret(){ local p="$1" v1 v2; while :; do read -rsp "$p: " v1; echo; read -rsp "Confirm: " v2; echo; [[ "$v1" == "$v2" ]] && { echo -n "$v1"; return; }; echo "Mismatch, try again."; done; }
 partsfx(){ [[ "$1" =~ (nvme|mmcblk|loop) ]] && echo p || echo; }  # /dev/nvme0n1p1 vs /dev/sda1
 
