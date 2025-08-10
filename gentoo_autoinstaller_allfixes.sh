@@ -12,6 +12,9 @@
 
 set -Eeuo pipefail
 
+cleanup(){ umount -R /mnt/gentoo/run 2>/dev/null || true; }
+trap cleanup EXIT
+
 # ---- emerge idempotent wrapper ----
 # Skips already-installed atoms and adds --noreplace for plain installs.
 if [ -z "${EMERGE_WRAPPER_LOADED:-}" ]; then
@@ -322,11 +325,12 @@ fi
 tar xpvf "$FN" --xattrs-include='*.*' --numeric-owner
 
 # ---------- bind mounts ----------
-title "Binding /dev, /proc, /sys"
-mkdir -p /mnt/gentoo/{proc,sys,dev}
+title "Binding /dev, /proc, /sys, /run"
+mkdir -p /mnt/gentoo/{proc,sys,dev,run}
 mount -t proc proc /mnt/gentoo/proc
 mount --rbind /sys /mnt/gentoo/sys && mount --make-rslave /mnt/gentoo/sys
 mount --rbind /dev /mnt/gentoo/dev && mount --make-rslave /mnt/gentoo/dev
+mount --rbind /run /mnt/gentoo/run && mount --make-rslave /mnt/gentoo/run
 
 # ---------- Portage config ----------
 title "Configuring Portage"
