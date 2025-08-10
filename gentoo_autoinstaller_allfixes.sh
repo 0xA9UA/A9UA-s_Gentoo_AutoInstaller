@@ -273,6 +273,8 @@ if [[ "$SWAP_MODE" == "luks" ]]; then
   printf '%s' "$ROOT_PW_LUKS" | cryptsetup luksFormat --type luks2 --batch-mode --key-file - "$SWAP_PART"
   printf '%s' "$ROOT_PW_LUKS" | cryptsetup open --key-file - "$SWAP_PART" cryptswap
   mkswap -L swap /dev/mapper/cryptswap
+else
+  mkswap -L swap "$SWAP_PART"
 fi
 
 # ---------- mount target ----------
