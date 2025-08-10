@@ -290,25 +290,38 @@ mount "$BOOT_PART" /mnt/gentoo/boot
 # ---------- stage3 ----------
 title "Fetching stage3 ($INIT_SYS)"
 BASE_URL="https://distfiles.gentoo.org/releases/${G_ARCH}/autobuilds"
+TXT_MINIMAL="latest-stage3-${G_ARCH}-${INIT_SYS}-minimal.txt"
 TXT_PRIMARY="latest-stage3-${G_ARCH}-${INIT_SYS}.txt"
 TXT_FALLBACK="latest-stage3-${G_ARCH}.txt"
 _extract_stage3_from_txt(){ grep -Eo '^[0-9]{8}T[0-9]{6}Z/stage3-[^[:space:]]+\.tar\.xz' || grep -Eo '[0-9]{8}T[0-9]{6}Z/stage3-[^[:space:]]+\.tar\.xz'; }
 LATEST=""
-if content="$(curl "${CURL_OPTS[@]}" -m 25 --retry 3 --retry-delay 2 "${BASE_URL}/${TXT_PRIMARY}" 2>/dev/null || true)"; then
+if content="$(curl "${CURL_OPTS[@]}" -m 25 --retry 3 --retry-delay 2 "${BASE_URL}/${TXT_MINIMAL}" 2>/dev/null || true)"; then
   LATEST="$(printf '%s\n' "$content" | _extract_stage3_from_txt | head -n1)"
 fi
 if [[ -z "$LATEST" ]]; then
+  if content="$(curl "${CURL_OPTS[@]}" -m 25 --retry 3 --retry-delay 2 "${BASE_URL}/${TXT_PRIMARY}" 2>/dev/null || true)"; then
+    LATEST="$(printf '%s\n' "$content" | _extract_stage3_from_txt | head -n1)"
+  fi
+fi
+if [[ -z "$LATEST" ]]; then
   if content="$(curl "${CURL_OPTS[@]}" -m 25 --retry 3 --retry-delay 2 "${BASE_URL}/${TXT_FALLBACK}" 2>/dev/null || true)"; then
-    LATEST="$(printf '%s\n' "$content" | _extract_stage3_from_txt | grep -F -- "-${INIT_SYS}-" | head -n1)"
+    LATEST="$(printf '%s\n' "$content" | _extract_stage3_from_txt | grep -F -- "-${INIT_SYS}-minimal" | head -n1)"
+    [[ -n "$LATEST" ]] || LATEST="$(printf '%s\n' "$content" | _extract_stage3_from_txt | grep -F -- "-${INIT_SYS}-" | head -n1)"
     [[ -n "$LATEST" ]] || LATEST="$(printf '%s\n' "$content" | _extract_stage3_from_txt | head -n1)"
   fi
 fi
 if [[ -z "$LATEST" ]]; then
-  LIST_URL="${BASE_URL}/current-stage3-${G_ARCH}-${INIT_SYS}/"
-  if html="$(curl "${CURL_OPTS[@]}" -m 25 --retry 3 --retry-delay 2 "$LIST_URL" 2>/dev/null || true)"; then
-    rel="$(printf '%s\n' "$html" | grep -Eo 'href="[^"]*stage3-[^"]+\.tar\.xz"' | sed -E 's/.*href="([^"]+)".*/\1/' | head -n1)"
-    if [[ -n "$rel" ]]; then case "$rel" in http*|/*) STAGE_URL="$rel" ;; *) STAGE_URL="${LIST_URL}${rel#./}" ;; esac; fi
-  fi
+  for variant in "${INIT_SYS}-minimal" "${INIT_SYS}"; do
+    LIST_URL="${BASE_URL}/current-stage3-${G_ARCH}-${variant}/"
+    if html="$(curl "${CURL_OPTS[@]}" -m 25 --retry 3 --retry-delay 2 "$LIST_URL" 2>/dev/null || true)"; then
+      rel="$(printf '%s\n' "$html" | grep -Eo 'href="[^"]*stage3-[^"]+\.tar\.xz"' | sed -E 's/.*href="([^"]+)".*/\1/' | head -n1)"
+      if [[ -n "$rel" ]]; then
+        case "$rel" in http*|/*) STAGE_URL="$rel" ;; *) STAGE_URL="${LIST_URL}${rel#./}" ;;
+        esac
+        break
+      fi
+    fi
+  done
 else
   STAGE_URL="${BASE_URL}/${LATEST}"
 fi
